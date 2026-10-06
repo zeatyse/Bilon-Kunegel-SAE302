@@ -2,7 +2,6 @@ class FeuTricolore:
     def __init__(self, id_voie: str):
         self.__id_voie: str = id_voie
         self.__etat_actuel: str = "Rouge"  # Vert, Orange, Rouge
-        self.__duree_cycle_actuel: int = 33
         self.__temps_dans_etat: int = 0
 
     @property
@@ -26,7 +25,7 @@ class FeuTricolore:
 
     def changer_etat_normal(self) -> None:
         """Alterne entre Vert, Orange et Rouge selon le temps écoulé."""
-        if self.__etat_actuel == "Vert" and self.__temps_dans_etat >= 15:
+        if self.__etat_actuel == "Vert" and self.__temps_dans_etat >= 7:
             self.__etat_actuel = "Orange"
             self.__temps_dans_etat = 0
             print(f"Feu {self.__id_voie} -> ORANGE")
@@ -34,7 +33,7 @@ class FeuTricolore:
             self.__etat_actuel = "Rouge"
             self.__temps_dans_etat = 0
             print(f"Feu {self.__id_voie} -> ROUGE")
-        elif self.__etat_actuel == "Rouge" and self.__temps_dans_etat >= 15:
+        elif self.__etat_actuel == "Rouge" and self.__temps_dans_etat >= 10:
             self.__etat_actuel = "Vert"
             self.__temps_dans_etat = 0
             print(f"Feu {self.__id_voie} -> VERT")
@@ -44,7 +43,8 @@ class FeuTricolore:
         self.__temps_dans_etat = 0
         print(f"Feu {self.__id_voie} : Forcé au VERT (Passage d'urgence).")
 
-    def restaurer_cycle_normal(self) -> None:
-        self.__etat_actuel = "Rouge"
+    def forcer_reprise(self, nouvel_etat: str) -> None:
+        """Force un état (Vert ou Rouge) et réinitialise le temps lors d'une reprise."""
+        self.__etat_actuel = nouvel_etat
         self.__temps_dans_etat = 0
-        print(f"Feu {self.__id_voie} : Reprise du cycle normal.")
+        print(f"Feu {self.__id_voie} : Reprise -> {nouvel_etat.upper()}")

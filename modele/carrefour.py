@@ -6,11 +6,17 @@ from .file_attente import FileAttente
 class Carrefour:
     def __init__(self, dimension_cm: float = 15.0):
         self.__dimension_cm: float = dimension_cm
-        self.__feux: List[FeuTricolore] = [FeuTricolore(f"Voie_{i}") for i in range(1, 5)]
-        self.__voies: List[FileAttente] = [FileAttente(f"Voie_{i}") for i in range(1, 5)]
+        noms_voies = ["Voie A", "Voie B", "Voie C", "Voie D"]
+
+        self.__feux: List[FeuTricolore] = [FeuTricolore(nom) for nom in noms_voies]
+        self.__voies: List[FileAttente] = [FileAttente(nom) for nom in noms_voies]
         self.__mode_urgence_active: bool = False
 
-        self.__feux[0].etat_actuel = "Vert"
+        # Initialisation synchronisée des paires
+        self.__feux[0].etat_actuel = "Vert"  # Voie A
+        self.__feux[2].etat_actuel = "Vert"  # Voie C
+        self.__feux[1].etat_actuel = "Rouge"  # Voie B
+        self.__feux[3].etat_actuel = "Rouge"  # Voie D
 
     @property
     def dimension_cm(self) -> float:
@@ -41,7 +47,7 @@ class Carrefour:
         for feu, voie in zip(self.__feux, self.__voies):
             if feu.etat_actuel == "Vert":
                 voie.traiter_passage_vehicule()
-            elif feu.etat_actuel == "Rouge":
+            else:  # Rouge ou Orange = arrêt
                 for v in voie.vehicules:
                     v.stopper()
 
@@ -54,8 +60,18 @@ class Carrefour:
             else:
                 feu.etat_actuel = "Rouge"
 
-    def reinitialiser_trafic(self) -> None:
+    def reinitialiser_trafic(self, voie_urgence: str) -> None:
         self.__mode_urgence_active = False
-        print("\n[NORMAL] Reprise du trafic régulier.")
+        print("\n[NORMAL] Reprise du trafic régulier : Activation des voies transversales.")
+
+        # Si l'ambulance venait de A ou C, on donne le Vert à B et D
+        if voie_urgence in ["Voie A", "Voie C"]:
+            voies_vertes = ["Voie B", "Voie D"]
+        else:
+            voies_vertes = ["Voie A", "Voie C"]
+
         for feu in self.__feux:
-            feu.restaurer_cycle_normal()
+            if feu.id_voie in voies_vertes:
+                feu.forcer_reprise("Vert")
+            else:
+                feu.forcer_reprise("Rouge")
