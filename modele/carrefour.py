@@ -45,11 +45,22 @@ class Carrefour:
                 feu.changer_etat_normal()
 
         for feu, voie in zip(self.__feux, self.__voies):
-            if feu.etat_actuel == "Vert":
-                voie.traiter_passage_vehicule()
-            else:  # Rouge ou Orange = arrêt
-                for v in voie.vehicules:
-                    v.stopper()
+            est_vert = (feu.etat_actuel == "Vert")
+
+            if not voie.vehicules:
+                continue
+
+            premier = voie.vehicules[0]
+
+            # Si le feu est vert OU si le véhicule est déjà engagé dans le carrefour
+            if est_vert or premier.en_mouvement:
+                voie.traiter_passage_vehicule(est_vert)
+            else:
+                premier.stopper()
+
+            # Tous les autres véhicules derrière restent à l'arrêt
+            for v in voie.vehicules[1:]:
+                v.stopper()
 
     def recevoir_signal_v2i(self, voie_id: str) -> None:
         self.__mode_urgence_active = True
