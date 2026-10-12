@@ -28,6 +28,7 @@ class SimulateurGUI:
         self.simulation_en_cours = False  # Contrôle d'arrêt
 
         self.directions_vehicules = {}
+        self.delais_reaction = {0: 0, 1: 0, 2: 0, 3: 0}  # NOUVEAU: Moteur de réaction
 
         # --- Panneau de configuration (Gauche) ---
         self.frame_config = tk.Frame(root, width=350, padx=10, pady=10)
@@ -104,7 +105,6 @@ class SimulateurGUI:
         self.animer_clignotement()
 
     def arreter_simulation(self):
-        """Coupe le flag, ce qui stoppera proprement le thread en cours"""
         self.simulation_en_cours = False
         self.btn_stop.config(state=tk.DISABLED)
 
@@ -172,7 +172,6 @@ class SimulateurGUI:
                                 fill="black")
 
     def animer_clignotement(self):
-        """Clignotement doux (Corail / Orange)"""
         if self.clignotement_actif:
             self.clignotement_couleur = "orange" if self.clignotement_couleur == "coral" else "coral"
             self.canvas.itemconfig("averti", fill=self.clignotement_couleur)
@@ -302,9 +301,18 @@ class SimulateurGUI:
                     tags_vehicule.append("averti")
                     couleur = self.clignotement_couleur
 
+                # 1. Le fond de couleur
                 self.canvas.create_rectangle(x - 16, y - 16, x + 16, y + 16, fill=couleur, outline="black",
                                              tags=tuple(tags_vehicule))
+                # 2. L'emoji par-dessus
                 self.canvas.create_text(x, y - 3, text=emoji, font=("Arial", 18), tags=tuple(tags_vehicule))
+
+                # Compte à rebours du temps de réaction directement sur la voiture de tête
+                if i == 1 and self.delais_reaction[idx] > 0 and carrefour.feux[idx].etat_actuel == "Vert":
+                    self.canvas.create_text(x, y - 30, text=f"⏱️ {self.delais_reaction[idx] * 0.05:.1f}s",
+                                            font=("Arial", 9, "bold"), fill="red", tags="vehicule")
+
+                # 3. Label de nom
                 self.canvas.create_text(x, y + 15, text=label, font=("Arial", 8, "bold"), fill="black", tags="vehicule")
 
         self.canvas.tag_raise("feu")
@@ -328,13 +336,15 @@ class SimulateurGUI:
         pos_ambulance = None
         self.directions_vehicules.clear()
 
+        # Initialisation propre des temps de réaction
+        self.delais_reaction = {0: 0, 1: 0, 2: 0, 3: 0}
+
         self.root.after(0, self.maj_chrono_amb)
 
         index_voie = self.liste_voies.index(self.var_voie.get())
         etat_initial = self.var_etat.get()
         taux_trafic = self.var_trafic.get()
 
-        # Récupération des états V2I et V2V
         v2i_actif = self.var_v2i.get()
         v2v_actif = self.var_v2v.get()
 
@@ -360,8 +370,12 @@ class SimulateurGUI:
             etats = {1: etat_initial, 3: etat_initial, 0: "Rouge" if etat_initial == "Vert" else "Vert",
                      2: "Rouge" if etat_initial == "Vert" else "Vert"}
 
+        # On surveille les états pour détecter les transitions Rouge ➜ Vert
+        feux_etats_precedents = {i: "Rouge" for i in range(4)}
+
         for i, etat in etats.items():
             carrefour.feux[i].etat_actuel = etat
+            feux_etats_precedents[i] = etat
             self.root.after(0, self.actualiser_feu_ui, i, etat)
 
         carrefour.initialiser_simulation(taux_trafic=taux_trafic)
@@ -377,40 +391,59 @@ class SimulateurGUI:
 
         self.root.after(0, self.actualiser_tous_vehicules_ui, carrefour, index_voie, None, vehicules_positions)
 
-        # --- TEMPS DE RÉACTION SELON LE V2V ---
-        # 1 seconde (20 ticks) si V2V actif, sinon 2 secondes (40 ticks)
-        delai_ticks = 20 if v2v_actif else 40
-        compteur_feu_vert = {idx: 0 for idx in range(4)}
-
         def animer_tick():
             for idx in range(4):
                 feu_vert = carrefour.feux[idx].etat_actuel == "Vert"
+                etat_precedent = feux_etats_precedents[idx]
 
-                if feu_vert:
-                    compteur_feu_vert[idx] += 1
-                else:
-                    compteur_feu_vert[idx] = 0
+                # Si le feu passe du Rouge au Vert, on déclenche le délai de démarrage
+                if feu_vert and etat_precedent == "Rouge":
+                    # Pour la voie test (contenant l'ambulance), le délai s'ajuste selon la présence d'alerte V2V
+                    if idx == index_voie:
+                        self.delais_reaction[idx] = 20 if v2v_actif else 40
+                        temps_attente = self.delais_reaction[idx] * 0.05
+                        self.ecrire_log(
+                            f"-> [TRANSITION FEU VERT] Réaction {self.liste_voies[idx]}: {temps_attente:.1f}s (alerte V2V active)" if v2v_actif else f"-> [TRANSITION FEU VERT] Réaction {self.liste_voies[idx]}: {temps_attente:.1f}s (sans alerte V2V)")
+                    else:
+                        # Délai classique de 2 secondes pour les autres voies non alertées
+                        self.delais_reaction[idx] = 40
+
+                feux_etats_precedents[idx] = carrefour.feux[idx].etat_actuel
+
+                # On réduit le délai de réaction au passage du temps (1 tick = 0.05s)
+                if feu_vert and self.delais_reaction[idx] > 0:
+                    self.delais_reaction[idx] -= 1
 
                 for k in range(len(vehicules_positions[idx])):
                     pos = vehicules_positions[idx][k]
+                    peut_avancer = feu_vert and (self.delais_reaction[idx] <= 0)
 
                     if k == 0:
-                        # Le premier véhicule démarre si le feu est vert ET que le temps de réaction est écoulé
-                        peut_avancer = feu_vert and (compteur_feu_vert[idx] >= delai_ticks)
-                        cible = -100.0 if (peut_avancer or pos < 1.0) else 1.0
+                        cible = -100.0 if (peut_avancer or pos < 0.95) else 1.0
                     else:
                         pos_precedente = vehicules_positions[idx][k - 1]
-                        if pos < 1.0:
+                        if pos < 0.95:
                             cible = pos_precedente + 1.0
                         else:
-                            if feu_vert:
+                            if peut_avancer:
                                 cible = pos_precedente + 1.0
                             else:
                                 cible = max(1.0, pos_precedente + 1.0)
 
+                    # --- NOUVEAU FIX: CÉDEZ-LE-PASSAGE (Eviter l'accident de face) ---
+                    est_ambulance = (pos_ambulance is not None) and (idx == index_voie) and (k == pos_ambulance - 1)
+                    if est_ambulance and direction_ambulance == "Tourner à Gauche" and pos > 0.4:
+                        idx_en_face = (idx + 2) % 4
+                        # Si le feu en face est vert, on doit vérifier s'il y a du monde
+                        if carrefour.feux[idx_en_face].etat_actuel == "Vert":
+                            for pos_en_face in vehicules_positions[idx_en_face]:
+                                # Si un véhicule arrive en face et est proche du carrefour
+                                if -0.2 < pos_en_face < 2.5:
+                                    cible = max(0.6, cible)  # L'ambulance s'arrête au milieu et cède le passage !
+                                    break
+
                     if pos > cible:
-                        est_dernier = (k == len(vehicules_positions[idx]) - 1) and (idx == index_voie)
-                        step = 0.15 if (est_dernier and pos - cible > 1.5) else 0.05
+                        step = 0.075 if est_ambulance else 0.05
 
                         vehicules_positions[idx][k] -= step
                         if vehicules_positions[idx][k] < cible:
@@ -442,7 +475,7 @@ class SimulateurGUI:
             carrefour.voies[index_voie].ajouter_vehicule(ambulance)
 
             self.directions_vehicules["AMB1"] = direction_ambulance
-            vehicules_positions[index_voie].append(float(pos_ambulance) + 6.0)
+            vehicules_positions[index_voie].append(float(pos_ambulance) + 2.0)
 
             # --- Gestion V2V ---
             if v2v_actif:
@@ -456,7 +489,7 @@ class SimulateurGUI:
             else:
                 self.ecrire_log("V2V : Désactivé (pas d'alerte amont).")
 
-            # --- Gestion V2I ---
+            # --- Gestion V2I & Forçage du Feu ---
             if v2i_actif:
                 ambulance.emettre_signal_v2i(carrefour, voie_id=id_voie_choisie)
                 idx_en_face = (index_voie + 2) % 4
@@ -511,6 +544,12 @@ class SimulateurGUI:
                         if compteur_reprise == 2:
                             self.ecrire_log("Reprise du cycle normal des feux tricolores.")
                             carrefour.reinitialiser_trafic(id_voie_choisie)
+
+                            # --- FIX SYNCHRONISATION VISUELLE ET CYCLE ---
+                            for i in range(4):
+                                self.root.after(0, self.actualiser_feu_ui, i, carrefour.feux[i].etat_actuel)
+
+                            ticks_ecoules = 1
 
             if not getattr(carrefour, 'mode_urgence_active', False) and ticks_ecoules % 100 == 0:
                 for idx in range(4):
