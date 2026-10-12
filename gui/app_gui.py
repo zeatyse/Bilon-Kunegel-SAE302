@@ -422,15 +422,31 @@ class SimulateurGUI:
             if gyrophare_actif:
                 self.clignotement_actif = True
                 ambulance.emettre_signal_v2i(carrefour, voie_id=id_voie_choisie)
-                self.ecrire_log("Urgence : Gyrophare activé ! Feu forcé au VERT.")
-                for i in range(4):
-                    etat = "Vert" if i == index_voie else "Rouge"
-                    carrefour.feux[i].etat_actuel = etat
-                    self.root.after(0, self.actualiser_feu_ui, i, etat)
+
+                direction_ambulance = self.var_direction.get()
+                idx_en_face = (index_voie + 2) % 4  # Trouve la voie d'en face (ex: A <-> C, B <-> D)
+
+                if direction_ambulance == "Tourner à Gauche":
+                    self.ecrire_log(
+                        "Urgence : Tourner à Gauche -> Sécurisation totale : tous les autres feux passent au ROUGE.")
+                    for i in range(4):
+                        etat = "Vert" if i == index_voie else "Rouge"
+                        carrefour.feux[i].etat_actuel = etat
+                        self.root.after(0, self.actualiser_feu_ui, i, etat)
+                else:
+                    self.ecrire_log(
+                        f"Urgence : {direction_ambulance} -> La voie de l'ambulance et celle d'en face sont Vertes.")
+                    for i in range(4):
+                        # La voie active et la voie d'en face passent au Vert, les deux autres au Rouge
+                        if i == index_voie or i == idx_en_face:
+                            etat = "Vert"
+                        else:
+                            etat = "Rouge"
+
+                        carrefour.feux[i].etat_actuel = etat
+                        self.root.after(0, self.actualiser_feu_ui, i, etat)
             else:
                 self.ecrire_log("Civil : Le véhicule d'essai se déplace sans gyrophare.")
-
-            self.ecrire_log("\n--- Évacuation en cours ---")
 
         def simulation_active():
             for idx in range(4):

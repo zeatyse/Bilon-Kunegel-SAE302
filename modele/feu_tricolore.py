@@ -24,7 +24,6 @@ class FeuTricolore:
         self.__temps_dans_etat += 1
 
     def changer_etat_normal(self) -> None:
-        """Alterne entre Vert, Orange et Rouge selon le temps écoulé."""
         if self.__etat_actuel == "Vert" and self.__temps_dans_etat >= 7:
             self.__etat_actuel = "Orange"
             self.__temps_dans_etat = 0
