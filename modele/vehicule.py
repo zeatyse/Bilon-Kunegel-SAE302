@@ -10,6 +10,8 @@ class Vehicule:
         self.__longueur_cm: float = longueur_cm
         self.__position_dans_file: int = position_dans_file
         self.__en_mouvement: bool = False
+        self.__alerte_v2v: bool = False
+        self.__temps_reaction_ecoule: int = 0
 
     @property
     def id_vehicule(self) -> str:
@@ -27,6 +29,10 @@ class Vehicule:
     def en_mouvement(self) -> bool:
         return self.__en_mouvement
 
+    @property
+    def alerte_v2v(self) -> bool:
+        return self.__alerte_v2v
+
     def avancer(self) -> None:
         self.__en_mouvement = True
         print(f"Véhicule {self.__id_vehicule} avance.")
@@ -36,7 +42,25 @@ class Vehicule:
         print(f"Véhicule {self.__id_vehicule} est à l'arrêt.")
 
     def recevoir_alerte_v2v(self) -> None:
-        print(f"V2V: Véhicule {self.__id_vehicule} a reçu l'alerte d'urgence et se prépare à dégager.")
+        self.__alerte_v2v = True
+        print(f"V2V: Véhicule {self.__id_vehicule} a reçu l'alerte d'urgence (réaction accélérée à 1s).")
+
+    def tenter_de_demarrer(self) -> bool:
+        """Gère le temps de réaction : 1 seconde si V2V actif, 2 secondes sinon.
+        Renvoie True si le véhicule commence enfin à avancer."""
+        delai_requis = 1 if self.__alerte_v2v else 2
+
+        self.__temps_reaction_ecoule += 1
+        if self.__temps_reaction_ecoule >= delai_requis:
+            self.avancer()
+            return True
+        else:
+            print(
+                f"Véhicule {self.__id_vehicule} réagit (temps écoulé : {self.__temps_reaction_ecoule}/{delai_requis}s)...")
+            return False
+
+    def reinitialiser_reaction(self) -> None:
+        self.__temps_reaction_ecoule = 0
 
 
 class Ambulance(Vehicule):

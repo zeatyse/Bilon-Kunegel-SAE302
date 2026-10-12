@@ -25,7 +25,7 @@ class SimulateurGUI:
         self.chrono_actif = False
         self.clignotement_actif = False
         self.clignotement_couleur = "coral"
-        self.simulation_en_cours = False  # NOUVEAU: Contrôle d'arrêt
+        self.simulation_en_cours = False  # Contrôle d'arrêt
 
         self.directions_vehicules = {}
 
@@ -56,27 +56,41 @@ class SimulateurGUI:
         ttk.Combobox(self.frame_config, textvariable=self.var_direction,
                      values=["Tout droit", "Tourner à Droite", "Tourner à Gauche"], state="readonly").pack(pady=5)
 
-        self.var_urgence = tk.BooleanVar(value=True)
-        self.btn_urgence = tk.Checkbutton(
+        # --- Options V2X Granulaires (V2I et V2V) ---
+        tk.Label(self.frame_config, text="Options de communication V2X :", font=("Arial", 10, "bold")).pack(
+            pady=(10, 5))
+
+        self.var_v2i = tk.BooleanVar(value=True)
+        self.btn_v2i = tk.Checkbutton(
             self.frame_config,
-            text="Activer Gyrophare (Système V2X)",
-            variable=self.var_urgence,
-            font=("Arial", 10, "bold"),
+            text="Activer V2I (Feux prioritaires)",
+            variable=self.var_v2i,
+            font=("Arial", 9, "bold"),
             fg="red"
         )
-        self.btn_urgence.pack(pady=10)
+        self.btn_v2i.pack(anchor=tk.W, padx=20, pady=2)
 
-        # NOUVEAU : Double bouton (Lancer / Arrêter)
+        self.var_v2v = tk.BooleanVar(value=True)
+        self.btn_v2v = tk.Checkbutton(
+            self.frame_config,
+            text="Activer V2V (Alerte véhicules amont)",
+            variable=self.var_v2v,
+            font=("Arial", 9, "bold"),
+            fg="#ff8c00"
+        )
+        self.btn_v2v.pack(anchor=tk.W, padx=20, pady=2)
+
+        # Boutons Lancer / Arrêter
         self.btn_start = tk.Button(self.frame_config, text="Lancer la simulation", bg="green", fg="white",
                                    font=("Arial", 10, "bold"), command=self.lancer_thread)
-        self.btn_start.pack(pady=5)
+        self.btn_start.pack(pady=10)
 
         self.btn_stop = tk.Button(self.frame_config, text="Arrêter la simulation", bg="darkred", fg="white",
                                   font=("Arial", 10, "bold"), command=self.arreter_simulation, state=tk.DISABLED)
         self.btn_stop.pack(pady=5)
 
         tk.Label(self.frame_config, text="Journal des événements :").pack(pady=(10, 0))
-        self.log_text = tk.Text(self.frame_config, height=20, width=40, state=tk.DISABLED, bg="#f4f4f4")
+        self.log_text = tk.Text(self.frame_config, height=15, width=40, state=tk.DISABLED, bg="#f4f4f4")
         self.log_text.pack(fill=tk.Y, expand=True)
 
         # --- Panneau Visuel (Droite) ---
@@ -166,7 +180,7 @@ class SimulateurGUI:
         else:
             self.canvas.itemconfig("legende_clignotante", fill="lightgrey")
 
-        self.root.after(700, self.animer_clignotement)  # Ralenti pour moins faire mal aux yeux
+        self.root.after(700, self.animer_clignotement)
 
     def maj_chrono_amb(self):
         self.canvas.itemconfig(self.chrono_amb_ui, text=f"Chronomètre : {self.chrono_amb_sec:.2f}s")
@@ -246,7 +260,7 @@ class SimulateurGUI:
                     x_mid, y_mid, dx_out, dy_out = self.get_trajectoire(idx, direction)
 
                     if pos_logique >= 0:
-                        t = 1 - pos_logique
+                        t = 1.0 - pos_logique
 
                         if direction == "Tout droit":
                             x = x_base + t * (x_mid - x_base)
@@ -261,8 +275,8 @@ class SimulateurGUI:
                             elif idx == 3:
                                 cx, cy = 425, (425 if direction == "Tourner à Droite" else 375)
 
-                            x = ((1 - t) ** 2) * x_base + 2 * (1 - t) * t * cx + (t ** 2) * x_mid
-                            y = ((1 - t) ** 2) * y_base + 2 * (1 - t) * t * cy + (t ** 2) * y_mid
+                            x = ((1.0 - t) ** 2) * x_base + 2 * (1.0 - t) * t * cx + (t ** 2) * x_mid
+                            y = ((1.0 - t) ** 2) * y_base + 2 * (1.0 - t) * t * cy + (t ** 2) * y_mid
                     else:
                         distance_out = abs(pos_logique)
                         x = x_mid + distance_out * dx_out
@@ -273,36 +287,33 @@ class SimulateurGUI:
 
                 tags_vehicule = ["vehicule"]
 
-                # NOUVELLE IDENTITE VISUELLE: Blocs de couleur derrière les emojis
                 if v_id == "AMB1":
                     emoji = "🚑"
                     label = "AMB"
-                    couleur = "#87CEFA"  # Bleu doux
+                    couleur = "#87CEFA"
                     averti = False
                 else:
                     emoji = "🚗"
                     label = f"{self.liste_voies[idx]}{i}"
-                    couleur = "#FFD700"  # Jaune Or
+                    couleur = "#FFD700"
                     averti = self.clignotement_actif and idx == index_voie_test and pos_ambulance and i < pos_ambulance
 
                 if averti:
                     tags_vehicule.append("averti")
-                    couleur = self.clignotement_couleur  # Prend le statut du clignotement doux
+                    couleur = self.clignotement_couleur
 
-                # 1. Le fond de couleur
                 self.canvas.create_rectangle(x - 16, y - 16, x + 16, y + 16, fill=couleur, outline="black",
                                              tags=tuple(tags_vehicule))
-                # 2. L'emoji par-dessus
                 self.canvas.create_text(x, y - 3, text=emoji, font=("Arial", 18), tags=tuple(tags_vehicule))
-                # 3. L'étiquette de nom
                 self.canvas.create_text(x, y + 15, text=label, font=("Arial", 8, "bold"), fill="black", tags="vehicule")
 
         self.canvas.tag_raise("feu")
 
     def lancer_thread(self):
         self.btn_start.config(state=tk.DISABLED)
-        self.btn_stop.config(state=tk.NORMAL)  # Activation du bouton Arrêt
-        self.btn_urgence.config(state=tk.DISABLED)
+        self.btn_stop.config(state=tk.NORMAL)
+        self.btn_v2i.config(state=tk.DISABLED)
+        self.btn_v2v.config(state=tk.DISABLED)
         self.log_text.config(state=tk.NORMAL)
         self.log_text.delete(1.0, tk.END)
         self.log_text.config(state=tk.DISABLED)
@@ -322,7 +333,11 @@ class SimulateurGUI:
         index_voie = self.liste_voies.index(self.var_voie.get())
         etat_initial = self.var_etat.get()
         taux_trafic = self.var_trafic.get()
-        gyrophare_actif = self.var_urgence.get()
+
+        # Récupération des états V2I et V2V
+        v2i_actif = self.var_v2i.get()
+        v2v_actif = self.var_v2v.get()
+
         direction_ambulance = self.var_direction.get()
 
         nb_vehicules = int((taux_trafic / 100) * 6)
@@ -362,15 +377,27 @@ class SimulateurGUI:
 
         self.root.after(0, self.actualiser_tous_vehicules_ui, carrefour, index_voie, None, vehicules_positions)
 
+        # --- TEMPS DE RÉACTION SELON LE V2V ---
+        # 1 seconde (20 ticks) si V2V actif, sinon 2 secondes (40 ticks)
+        delai_ticks = 20 if v2v_actif else 40
+        compteur_feu_vert = {idx: 0 for idx in range(4)}
+
         def animer_tick():
             for idx in range(4):
                 feu_vert = carrefour.feux[idx].etat_actuel == "Vert"
+
+                if feu_vert:
+                    compteur_feu_vert[idx] += 1
+                else:
+                    compteur_feu_vert[idx] = 0
 
                 for k in range(len(vehicules_positions[idx])):
                     pos = vehicules_positions[idx][k]
 
                     if k == 0:
-                        cible = -100.0 if (feu_vert or pos < 1.0) else 1.0
+                        # Le premier véhicule démarre si le feu est vert ET que le temps de réaction est écoulé
+                        peut_avancer = feu_vert and (compteur_feu_vert[idx] >= delai_ticks)
+                        cible = -100.0 if (peut_avancer or pos < 1.0) else 1.0
                     else:
                         pos_precedente = vehicules_positions[idx][k - 1]
                         if pos < 1.0:
@@ -395,7 +422,6 @@ class SimulateurGUI:
         ticks_ecoules = 0
         self.ecrire_log("\n--- Trafic normal (2 secondes) ---")
 
-        # Le code s'arrête net si le bouton "Stop" est pressé (self.simulation_en_cours == False)
         for _ in range(40):
             if not self.simulation_en_cours: break
             time.sleep(0.05)
@@ -405,7 +431,6 @@ class SimulateurGUI:
                 self.root.after(0, self.maj_chrono_amb)
             animer_tick()
 
-        # Ne charge l'ambulance que si on n'a pas arrêté avant
         if self.simulation_en_cours:
             ambulance_passee_carrefour = False
             compteur_reprise = 0
@@ -419,34 +444,42 @@ class SimulateurGUI:
             self.directions_vehicules["AMB1"] = direction_ambulance
             vehicules_positions[index_voie].append(float(pos_ambulance) + 6.0)
 
-            if gyrophare_actif:
+            # --- Gestion V2V ---
+            if v2v_actif:
                 self.clignotement_actif = True
-                ambulance.emettre_signal_v2i(carrefour, voie_id=id_voie_choisie)
+                vehicules_devant = [v for v in carrefour.voies[index_voie].vehicules if v.id_vehicule != "AMB1"]
+                if vehicules_devant:
+                    ambulance.emettre_signal_v2v(vehicules_devant)
+                    self.ecrire_log("V2V : Alerte transmise aux véhicules en amont (clignotement activé).")
+                else:
+                    self.ecrire_log("V2V : Aucun véhicule devant l'ambulance.")
+            else:
+                self.ecrire_log("V2V : Désactivé (pas d'alerte amont).")
 
-                direction_ambulance = self.var_direction.get()
-                idx_en_face = (index_voie + 2) % 4  # Trouve la voie d'en face (ex: A <-> C, B <-> D)
+            # --- Gestion V2I ---
+            if v2i_actif:
+                ambulance.emettre_signal_v2i(carrefour, voie_id=id_voie_choisie)
+                idx_en_face = (index_voie + 2) % 4
 
                 if direction_ambulance == "Tourner à Gauche":
                     self.ecrire_log(
-                        "Urgence : Tourner à Gauche -> Sécurisation totale : tous les autres feux passent au ROUGE.")
+                        "V2I (Tourner à Gauche) : Sécurisation totale, tous les autres feux passent au ROUGE.")
                     for i in range(4):
                         etat = "Vert" if i == index_voie else "Rouge"
                         carrefour.feux[i].etat_actuel = etat
                         self.root.after(0, self.actualiser_feu_ui, i, etat)
                 else:
                     self.ecrire_log(
-                        f"Urgence : {direction_ambulance} -> La voie de l'ambulance et celle d'en face sont Vertes.")
+                        f"V2I ({direction_ambulance}) : La voie de l'ambulance et celle d'en face sont Vertes.")
                     for i in range(4):
-                        # La voie active et la voie d'en face passent au Vert, les deux autres au Rouge
                         if i == index_voie or i == idx_en_face:
                             etat = "Vert"
                         else:
                             etat = "Rouge"
-
                         carrefour.feux[i].etat_actuel = etat
                         self.root.after(0, self.actualiser_feu_ui, i, etat)
             else:
-                self.ecrire_log("Civil : Le véhicule d'essai se déplace sans gyrophare.")
+                self.ecrire_log("V2I : Désactivé (les feux suivent leur cycle normal sans priorité).")
 
         def simulation_active():
             for idx in range(4):
@@ -454,7 +487,6 @@ class SimulateurGUI:
                     return True
             return False
 
-        # Boucle principale d'évacuation (stoppée instantanément si btn_stop pressé)
         while simulation_active() and self.simulation_en_cours:
             time.sleep(0.05)
             ticks_ecoules += 1
@@ -467,8 +499,9 @@ class SimulateurGUI:
                     self.chrono_actif = False
                     self.ecrire_log(f"-> [INFO] Temps total du véhicule : {self.chrono_amb_sec:.2f}s")
 
+            # Reprise du trafic uniquement si V2I était actif
             if ticks_ecoules % 20 == 0:
-                if gyrophare_actif and getattr(carrefour, 'mode_urgence_active', False):
+                if v2i_actif and getattr(carrefour, 'mode_urgence_active', False):
                     if not ambulance_passee_carrefour and vehicules_positions[index_voie][pos_ambulance - 1] < 0.0:
                         ambulance_passee_carrefour = True
                         self.clignotement_actif = False
@@ -487,7 +520,6 @@ class SimulateurGUI:
 
             animer_tick()
 
-        # Fin propre
         if not self.simulation_en_cours:
             self.ecrire_log("\n[!] Simulation interrompue par l'utilisateur.")
         else:
@@ -495,9 +527,9 @@ class SimulateurGUI:
 
         self.clignotement_actif = False
 
-        # Restauration des boutons
         self.root.after(0, lambda: self.btn_start.config(state=tk.NORMAL))
-        self.root.after(0, lambda: self.btn_urgence.config(state=tk.NORMAL))
+        self.root.after(0, lambda: self.btn_v2i.config(state=tk.NORMAL))
+        self.root.after(0, lambda: self.btn_v2v.config(state=tk.NORMAL))
         self.root.after(0, lambda: self.btn_stop.config(state=tk.DISABLED))
 
 
