@@ -13,6 +13,7 @@ if parent_dir not in sys.path:
 
 from modele.carrefour import Carrefour
 from modele.vehicule import Vehicule, Ambulance
+from modele.gestionnaire_stats import GestionnaireStats  # 👈 Import du gestionnaire de stats
 
 
 class SimulateurGUI:
@@ -28,7 +29,10 @@ class SimulateurGUI:
         self.simulation_en_cours = False  # Contrôle d'arrêt
 
         self.directions_vehicules = {}
-        self.delais_reaction = {0: 0, 1: 0, 2: 0, 3: 0}  # NOUVEAU: Moteur de réaction
+        self.delais_reaction = {0: 0, 1: 0, 2: 0, 3: 0}  # Moteur de réaction
+
+        # Initialisation du gestionnaire de stats (CSV / MariaDB)
+        self.stats_manager = GestionnaireStats()
 
         # --- Panneau de configuration (Gauche) ---
         self.frame_config = tk.Frame(root, width=350, padx=10, pady=10)
@@ -530,7 +534,17 @@ class SimulateurGUI:
 
                 if vehicules_positions[index_voie][pos_ambulance - 1] < -3.0:
                     self.chrono_actif = False
-                    self.ecrire_log(f"-> [INFO] Temps total du véhicule : {self.chrono_amb_sec:.2f}s")
+                    temps_final = self.chrono_amb_sec
+                    self.ecrire_log(f"-> [INFO] Temps total du véhicule : {temps_final:.2f}s")
+
+                    # --- ENREGISTREMENT AUTOMATIQUE DES STATS (CSV) ---
+                    self.stats_manager.enregistrer_resultat(
+                        taux_trafic=taux_trafic,
+                        direction=direction_ambulance,
+                        v2i=v2i_actif,
+                        v2v=v2v_actif,
+                        temps_ambulance=temps_final
+                    )
 
             # Reprise du trafic uniquement si V2I était actif
             if ticks_ecoules % 20 == 0:

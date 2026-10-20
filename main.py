@@ -1,7 +1,6 @@
 import os
 import sys
 
-# Ajoute le dossier courant au PYTHONPATH
 current_dir = os.path.dirname(os.path.abspath(__file__))
 if current_dir not in sys.path:
     sys.path.append(current_dir)
@@ -56,7 +55,6 @@ def main():
 
     carrefour = Carrefour(dimension_cm=15.0)
 
-    # Initialisation des feux selon la voie choisie
     if num_voie in [1, 3]:  # Voies A et C
         if etat_initial == "Vert":
             carrefour.feux[0].etat_actuel = "Vert"
@@ -68,7 +66,7 @@ def main():
             carrefour.feux[2].etat_actuel = "Rouge"
             carrefour.feux[1].etat_actuel = "Vert"
             carrefour.feux[3].etat_actuel = "Vert"
-    else:  # Voies B et D
+    else:
         if etat_initial == "Vert":
             carrefour.feux[1].etat_actuel = "Vert"
             carrefour.feux[3].etat_actuel = "Vert"
