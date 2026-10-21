@@ -1,3 +1,5 @@
+nano deploiement_sae302.sh
+
 #!/bin/bash
 
 # Vérification des droits administrateur
@@ -66,3 +68,5 @@ echo " ✅ DÉPLOIEMENT TERMINÉ AVEC SUCCÈS ! ✅"
 echo " 1. La base de données MariaDB tourne en fond."
 echo " 2. L'application 'Simulateur V2X' est dans votre menu."
 echo "========================================="
+
+bash deploiement_sae302.sh
