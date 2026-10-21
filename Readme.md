@@ -36,6 +36,7 @@ SET PASSWORD FOR 'root'@'localhost' = PASSWORD('mathiskunegel');
 CREATE DATABASE IF NOT EXISTS sae302_traffic;
 USE sae302_traffic;
 CREATE TABLE IF NOT EXISTS simulations (id_simu INT AUTO_INCREMENT PRIMARY KEY, date_heure DATETIME, taux_trafic INT, direction VARCHAR(50), v2i BOOLEAN, v2v BOOLEAN, temps_ambulance FLOAT);
+ALTER TABLE sae302_traffic.simulations ADD UNIQUE (date_heure, taux_trafic, direction, v2i, v2v, temps_ambulance);
 FLUSH PRIVILEGES;
 EOF
 
@@ -73,3 +74,5 @@ echo " L'application 'Simulateur V2X' est prête dans votre menu."
 echo "========================================="
 
 bash deploiement_sae302.sh
+mysql -u root -pmathiskunegel
+SELECT * FROM sae302_traffic.simulations;
