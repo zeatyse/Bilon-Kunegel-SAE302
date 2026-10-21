@@ -83,3 +83,9 @@ SELECT direction, taux_trafic, v2i, v2v,
 FROM sae302_traffic.simulations 
 GROUP BY direction, taux_trafic, v2i, v2v 
 ORDER BY direction, taux_trafic, v2i, v2v;
+
+
+
+FALSK :
+
+python web/flask_web.py
