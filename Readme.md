@@ -20,7 +20,7 @@ apt-get install -y --fix-missing mariadb-server python3-mysqldb python3-tk git
 # 2. Configuration de la base de données
 echo -e "\n[2/4] Création de la base de données et configuration des droits..."
 
-mysql -e "ALTER USER 'root'@'localhost' IDENTIFIED BY 'LE_MOT_DE_PASSE'; FLUSH PRIVILEGES;"
+mysql -e "ALTER USER 'root'@'localhost' IDENTIFIED BY 'mathiskunegel'; FLUSH PRIVILEGES;"
 
 # Création de la base et de la table
 mysql -e "CREATE DATABASE IF NOT EXISTS sae302_traffic;"
@@ -59,3 +59,4 @@ echo " ✅ DÉPLOIEMENT TERMINÉ AVEC SUCCÈS ! ✅"
 echo " 1. La base de données MariaDB tourne en fond."
 echo " 2. L'application 'Simulateur V2X' est dans votre menu."
 echo "========================================="
+
