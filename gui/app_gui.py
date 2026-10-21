@@ -13,8 +13,7 @@ if parent_dir not in sys.path:
 
 from modele.carrefour import Carrefour
 from modele.vehicule import Vehicule, Ambulance
-from modele.gestionnaire_stats import GestionnaireStats  # 👈 Import du gestionnaire de stats
-
+from modele.gestion_stats import GestionnaireStats  
 
 class SimulateurGUI:
     def __init__(self, root):
