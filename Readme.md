@@ -12,8 +12,8 @@ echo "========================================="
 echo "  🚀 DÉPLOIEMENT DU SIMULATEUR V2X 🚀"
 echo "========================================="
 
-# 1. Nettoyage et installation des paquets (Ajout de python3-flask)
-echo -e "\n[1/4] Nettoyage du cache et installation des dépendances système..."
+# 1. Nettoyage et installation des paquets
+echo -e "\n[1/4] Installation des dépendances (MariaDB, Python, Flask, Git)..."
 rm -rf /var/lib/apt/lists/*
 apt-get clean
 apt-get update
@@ -39,18 +39,23 @@ EOF
 
 # 3. Récupération du code source
 echo -e "\n[3/4] Téléchargement du code depuis GitHub..."
-if [ -d "Bilon-Kunegel-SAE302" ]; then
+CHEMIN_PROJET="/opt/simulateur-v2x"
+
+if [ -d "$CHEMIN_PROJET" ]; then
     echo "Le dossier existe déjà, mise à jour du code..."
-    cd Bilon-Kunegel-SAE302 && git pull && cd ..
+    cd "$CHEMIN_PROJET" && git pull
 else
-    git clone https://github.com/zeatyse/Bilon-Kunegel-SAE302.git
+    git clone https://github.com/zeatyse/Bilon-Kunegel-SAE302.git "$CHEMIN_PROJET"
 fi
+
+# On donne tous les droits au dossier pour que l'application puisse enregistrer le CSV sans erreur de permission
+chmod -R 777 "$CHEMIN_PROJET"
+chmod +x "$CHEMIN_PROJET/gui/app_gui.py"
+chmod +x "$CHEMIN_PROJET/web/flask_web.py"
 
 # 4. Création des raccourcis d'application
 echo -e "\n[4/4] Création des raccourcis dans le menu..."
-CHEMIN_PROJET=$(pwd)/Bilon-Kunegel-SAE302
 
-# Raccourci 1 : Le Simulateur (GUI Tkinter)
 cat <<EOF > /usr/share/applications/simulateur-v2x.desktop
 [Desktop Entry]
 Version=1.0
@@ -63,9 +68,7 @@ Terminal=false
 Type=Application
 Categories=Education;Science;
 EOF
-chmod +x $CHEMIN_PROJET/gui/app_gui.py
 
-# Raccourci 2 : Le Tableau de Bord Web (Flask)
 cat <<EOF > /usr/share/applications/serveur-web-v2x.desktop
 [Desktop Entry]
 Version=1.0
@@ -78,7 +81,6 @@ Terminal=true
 Type=Application
 Categories=Education;Science;
 EOF
-chmod +x $CHEMIN_PROJET/web/flask_web.py
 
 echo -e "\n========================================="
 echo " ✅ DÉPLOIEMENT TERMINÉ AVEC SUCCÈS ! ✅"
