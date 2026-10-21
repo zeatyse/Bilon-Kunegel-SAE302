@@ -2,7 +2,6 @@ import csv
 import datetime
 import os
 
-# Tentative d'importation de mysqlclient (optionnel pour éviter les crashs si non installé)
 try:
     import MySQLdb
     MYSQL_DISPONIBLE = True
@@ -12,18 +11,17 @@ except ImportError:
 
 class GestionnaireStats:
     def __init__(self, fichier_csv="resultats_simulation.csv"):
-        # Force la création du CSV dans la racine du projet
         racine_projet = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
         self.fichier_csv = os.path.join(racine_projet, fichier_csv)
         self._initialiser_csv()
 
-        # Identifiants de connexion MariaDB
         self.db_config = {
             'host': 'localhost',
             'user': 'root',
             'passwd': 'mathiskunegel',
             'db': 'sae302_traffic',
-            'charset': 'utf8mb4'
+            'charset': 'utf8mb4',
+            'connect_timeout': 2  # 👈 Évite le gel si MariaDB est éteinte (timeout après 2s)
         }
 
     def _initialiser_csv(self):
@@ -35,7 +33,6 @@ class GestionnaireStats:
     def enregistrer_resultat(self, taux_trafic: int, direction: str, v2i: bool, v2v: bool, temps_ambulance: float):
         date_str = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
-        # 1. Sauvegarde CSV locale (Garanti à chaque fin de simulation)
         try:
             with open(self.fichier_csv, mode='a', newline='', encoding='utf-8') as f:
                 writer = csv.writer(f)
@@ -44,7 +41,6 @@ class GestionnaireStats:
         except Exception as e:
             print(f"[STATS ERREUR CSV] : {e}")
 
-        # 2. Envoi vers MariaDB (uniquement si le module est installé et configuré)
         if MYSQL_DISPONIBLE:
             self.inserer_dans_mariadb(date_str, taux_trafic, direction, v2i, v2v, temps_ambulance)
         else:
@@ -71,3 +67,19 @@ class GestionnaireStats:
 
         except Exception as err:
             print(f"[MARIADB ERREUR] Connexion impossible : {err}")
+
+    def recuperer_resultats(self):
+        resultats = []
+
+        # Lecture directe, propre et instantanée depuis le fichier CSV local
+        if os.path.exists(self.fichier_csv):
+            with open(self.fichier_csv, mode='r', encoding='utf-8') as f:
+                reader = csv.DictReader(f)
+                for row in reader:
+                    row['taux_trafic'] = int(row['taux_trafic'])
+                    row['v2i'] = row['v2i'] in ('True', True, '1', 1)
+                    row['v2v'] = row['v2v'] in ('True', True, '1', 1)
+                    row['temps_ambulance'] = float(row['temps_ambulance'])
+                    resultats.append(row)
+
+        return resultats

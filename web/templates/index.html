@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Statistiques V2X - SAE302</title>
+    <style>
+        body { font-family: Arial, sans-serif; background-color: #f3f4f6; margin: 0; padding: 2rem; color: #1f2937; }
+        .container { max-width: 1000px; margin: 0 auto; background: white; padding: 2rem; border-radius: 0.75rem; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; }
+        .btn { background-color: #16a34a; color: white; padding: 0.5rem 1rem; border-radius: 0.5rem; text-decoration: none; font-weight: bold; display: inline-flex; align-items: center; gap: 0.5rem; }
+        .btn:hover { background-color: #15803d; }
+        .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.5rem; margin-bottom: 2rem; }
+        .card { padding: 1.25rem; border-radius: 0.5rem; box-shadow: 0 1px 3px rgba(0,0,0,0.1); border-left: 4px solid; }
+        .card-blue { background-color: #eff6ff; border-color: #3b82f6; color: #1e40af; }
+        .card-red { background-color: #fef2f2; border-color: #ef4444; color: #991b1b; }
+        .card-green { background-color: #f0fdf4; border-color: #22c55e; color: #166534; }
+        .card-title { font-size: 0.875rem; font-weight: 600; margin-bottom: 0.25rem; }
+        .card-value { font-size: 1.875rem; font-weight: bold; }
+        table { width: 100%; border-collapse: collapse; margin-top: 1rem; }
+        th, td { padding: 0.75rem 1rem; text-align: left; border-bottom: 1px solid #e5e7eb; font-size: 0.875rem; }
+        th { background-color: #f9fafb; font-weight: 600; color: #6b7280; text-transform: uppercase; font-size: 0.75rem; }
+        tr:hover { background-color: #f9fafb; }
+        .badge { padding: 0.25rem 0.625rem; border-radius: 9999px; font-size: 0.75rem; font-weight: 600; display: inline-block; }
+        .badge-green { background-color: #dcfce7; color: #166534; }
+        .badge-gray { background-color: #f3f4f6; color: #374151; }
+        .badge-orange { background-color: #ffedd5; color: #9a3412; }
+        .empty { text-align: center; color: #6b7280; padding: 2rem; }
+    </style>
+</head>
+<body>
+    <div class="container">
+
+        <div class="header">
+            <div>
+                <h1 style="font-size: 1.875rem; font-weight: bold; margin: 0;">Tableau de Bord V2X</h1>
+                <p style="color: #6b7280; margin: 0.25rem 0 0 0;">Analyse comparative des temps de trajet de l'ambulance</p>
+            </div>
+            <a href="/export" class="btn">📥 Exporter en CSV</a>
+        </div>
+
+        <div class="grid">
+            <div class="card card-blue">
+                <div class="card-title">Moyenne AVEC V2X (V2I/V2V)</div>
+                <div class="card-value">{{ moy_avec }} s</div>
+            </div>
+            <div class="card card-red">
+                <div class="card-title">Moyenne SANS V2X</div>
+                <div class="card-value">{{ moy_sans }} s</div>
+            </div>
+            <div class="card card-green">
+                <div class="card-title">Gain de temps moyen</div>
+                <div class="card-value">+{{ diff }} s</div>
+            </div>
+        </div>
+
+        <h2 style="font-size: 1.25rem; font-weight: bold; margin-bottom: 1rem;">Historique des simulations</h2>
+        <div style="overflow-x: auto;">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Date & Heure</th>
+                        <th>Trafic (%)</th>
+                        <th>Direction</th>
+                        <th>V2I</th>
+                        <th>V2V</th>
+                        <th>Temps Ambulance</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for row in resultats %}
+                    <tr>
+                        <td>{{ row.date_heure }}</td>
+                        <td>{{ row.taux_trafic }}%</td>
+                        <td>{{ row.direction }}</td>
+                        <td>
+                            <span class="badge {{ 'badge-green' if row.v2i else 'badge-gray' }}">
+                                {{ 'Actif' if row.v2i else 'Inactif' }}
+                            </span>
+                        </td>
+                        <td>
+                            <span class="badge {{ 'badge-orange' if row.v2v else 'badge-gray' }}">
+                                {{ 'Actif' if row.v2v else 'Inactif' }}
+                            </span>
+                        </td>
+                        <td style="font-weight: bold;">{{ row.temps_ambulance }} s</td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="6" class="empty">Aucune donnée enregistrée pour le moment. Lance une simulation depuis l'interface Tkinter !</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+    </div>
+</body>
+</html>
