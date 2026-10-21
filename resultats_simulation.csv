@@ -1,2 +1,5 @@
 date_heure,taux_trafic,direction,v2i,v2v,temps_ambulance
 2026-10-20 11:21:27,100,Tourner à Droite,True,True,10.100000000000009
+2026-10-21 16:11:53,100,Tout droit,True,True,13.05000000000005
+2026-10-21 16:12:31,50,Tout droit,False,False,19.600000000000144
+2026-10-21 16:17:11,100,Tout droit,True,True,13.05000000000005

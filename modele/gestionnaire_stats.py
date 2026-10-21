@@ -21,7 +21,7 @@ class GestionnaireStats:
             'passwd': 'mathiskunegel',
             'db': 'sae302_traffic',
             'charset': 'utf8mb4',
-            'connect_timeout': 2  # 👈 Évite le gel si MariaDB est éteinte (timeout après 2s)
+            'connect_timeout': 2
         }
 
     def _initialiser_csv(self):
@@ -43,43 +43,39 @@ class GestionnaireStats:
 
         if MYSQL_DISPONIBLE:
             self.inserer_dans_mariadb(date_str, taux_trafic, direction, v2i, v2v, temps_ambulance)
-        else:
-            print("[MARIADB] Module 'mysqlclient' non installé sur cette machine (sauvegarde CSV uniquement).")
 
     def inserer_dans_mariadb(self, date_str, taux_trafic, direction, v2i, v2v, temps_ambulance):
         try:
             conn = MySQLdb.connect(**self.db_config)
             cursor = conn.cursor()
-
             query = """
                 INSERT INTO simulations 
                 (date_heure, taux_trafic, direction, v2i, v2v, temps_ambulance) 
                 VALUES (%s, %s, %s, %s, %s, %s)
             """
-            valeurs = (date_str, taux_trafic, direction, v2i, v2v, temps_ambulance)
-
-            cursor.execute(query, valeurs)
+            cursor.execute(query, (date_str, taux_trafic, direction, v2i, v2v, temps_ambulance))
             conn.commit()
-
             cursor.close()
             conn.close()
-            print("[MARIADB] Enregistrement réussi dans la base de données !")
-
         except Exception as err:
             print(f"[MARIADB ERREUR] Connexion impossible : {err}")
 
     def recuperer_resultats(self):
         resultats = []
-
-        # Lecture directe, propre et instantanée depuis le fichier CSV local
-        if os.path.exists(self.fichier_csv):
-            with open(self.fichier_csv, mode='r', encoding='utf-8') as f:
-                reader = csv.DictReader(f)
-                for row in reader:
-                    row['taux_trafic'] = int(row['taux_trafic'])
-                    row['v2i'] = row['v2i'] in ('True', True, '1', 1)
-                    row['v2v'] = row['v2v'] in ('True', True, '1', 1)
-                    row['temps_ambulance'] = float(row['temps_ambulance'])
-                    resultats.append(row)
-
+        if os.path.exists(self.fichier_csv) and os.path.getsize(self.fichier_csv) > 0:
+            try:
+                with open(self.fichier_csv, mode='r', encoding='utf-8') as f:
+                    reader = csv.DictReader(f)
+                    for row in reader:
+                        try:
+                            row['taux_trafic'] = int(row['taux_trafic'])
+                            # Conversion sécurisée des booléens CSV (string vers bool)
+                            row['v2i'] = str(row['v2i']).strip().lower() in ('true', '1', 'yes')
+                            row['v2v'] = str(row['v2v']).strip().lower() in ('true', '1', 'yes')
+                            row['temps_ambulance'] = round(float(row['temps_ambulance']), 2)
+                            resultats.append(row)
+                        except Exception:
+                            continue # Ignore les lignes corrompues si y en a
+            except Exception as e:
+                print(f"[CSV ERREUR LECTURE] : {e}")
         return resultats
