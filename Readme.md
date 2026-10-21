@@ -1,6 +1,3 @@
-- pip install mysqlclient 
-
-
 #!/bin/bash
 
 # Vérification des droits administrateur
@@ -23,8 +20,7 @@ apt-get install -y --fix-missing mariadb-server python3-mysqldb python3-tk git
 # 2. Configuration de la base de données
 echo -e "\n[2/4] Création de la base de données et configuration des droits..."
 
-# Désactivation de la sécurité stricte (unix_socket) pour autoriser l'application graphique
-mysql -e "ALTER USER 'root'@'localhost' IDENTIFIED BY ''; FLUSH PRIVILEGES;"
+mysql -e "ALTER USER 'root'@'localhost' IDENTIFIED BY 'LE_MOT_DE_PASSE'; FLUSH PRIVILEGES;"
 
 # Création de la base et de la table
 mysql -e "CREATE DATABASE IF NOT EXISTS sae302_traffic;"
