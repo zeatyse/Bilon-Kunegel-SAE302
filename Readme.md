@@ -75,4 +75,11 @@ echo "========================================="
 
 bash deploiement_sae302.sh
 mysql -u root -pmathiskunegel
-SELECT * FROM sae302_traffic.simulations;
+
+
+SELECT direction, taux_trafic, v2i, v2v, 
+       COUNT(*) as nombre_de_tests, 
+       ROUND(AVG(temps_ambulance), 2) as temps_moyen 
+FROM sae302_traffic.simulations 
+GROUP BY direction, taux_trafic, v2i, v2v 
+ORDER BY direction, taux_trafic, v2i, v2v;
