@@ -21,7 +21,7 @@ class GestionnaireStats:
         self.db_config = {
             'host': 'localhost',
             'user': 'root',
-            'passwd': 'votre_mot_de_passe',
+            'passwd': 'mathiskunegel',
             'db': 'sae302_traffic',
             'charset': 'utf8mb4'
         }
