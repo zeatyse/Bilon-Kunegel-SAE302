@@ -1,0 +1,10 @@
+__pycache__/
+*.pyc
+.idea/
+.vscode/
+venv/
+.venv/
+
+config_db.ini
+.env
+resultats_simulation.csv
